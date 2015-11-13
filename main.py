@@ -5,6 +5,7 @@ import json
 import datetime
 import tweepy
 import csv
+import re
 
 def config(afile="config.json"):
     '''load config given JSON file'''
@@ -43,8 +44,9 @@ class CustomStreamListener(tweepy.StreamListener):
         # and store it into database_name csv file
         
         try:
-            row = [unicode(status.text).encode('utf-8'), unicode(status.author.screen_name).encode('utf-8'), status.created_at, unicode(status.source).encode('utf-8')]
-            print(row)
+            row = [re.sub("\t|\n|\r", "", (status.text).encode('utf-8')), re.sub("\t|\n|\r", "", (status.author.screen_name).encode('utf-8')), status.created_at, re.sub("\t|\n|\r", "", status.source.encode('utf-8'))]
+            #row = [re.sub("\t|\n|\r", "", str(n)) for n in row]
+            #print(row)
             #yield row
             self.write_data(row)
             
