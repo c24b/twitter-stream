@@ -42,6 +42,6 @@ with:
 ## Stream it!
 In command line or in a cron
 ```
-$ python tweestream.py &
+$ python streamtweet.py &
 ```
 
