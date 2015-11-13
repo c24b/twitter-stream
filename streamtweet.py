@@ -28,10 +28,11 @@ class ThreadingExample(object):
     
     def run(self):
         """ Method that runs forever """
-        while True:
+        start = True
+        while start:
             if self.time_elapsed >= self.timeout:
-                break
-                
+                start = False
+                return False
             stream()
             
             
