@@ -6,7 +6,7 @@ import datetime
 import tweepy
 import csv
 
-def config(afile="local_config.json"):
+def config(afile="config.json"):
     '''load config given JSON file'''
     if afile.endswith("json"):
         curr_dir = os.getcwd()
@@ -43,7 +43,7 @@ class CustomStreamListener(tweepy.StreamListener):
         # and store it into database_name csv file
         
         try:
-            row = [unicode(status.text), unicode(status.author.screen_name), status.created_at, status.source]
+            row = [unicode(status.text).encode('utf-8'), unicode(status.author.screen_name).encode('utf-8'), status.created_at, unicode(status.source).encode('utf-8')]
             print(row)
             #yield row
             self.write_data(row)
@@ -100,8 +100,8 @@ def set_credentials(params):
     # auth.get_access_token(verifier)
 
     
+def stream():
+    run(cfg)   
 
     
-if __name__ == "__main__":
-    run(cfg)
-    #
+    
