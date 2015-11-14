@@ -1,4 +1,5 @@
 #usr/bin python env
+ # -*- coding: utf-8 -*-
 import sys
 import os
 import json
@@ -6,8 +7,10 @@ import datetime
 import tweepy
 import csv
 import re
+from collections import OrderedDict, defaultdict
+import codecs 
 
-def config(afile="config.json"):
+def config(afile="local_config.json"):
     '''load config given JSON file'''
     if afile.endswith("json"):
         curr_dir = os.getcwd()
@@ -25,6 +28,7 @@ def config(afile="config.json"):
                     return sys.exit("Error parsing config file %s: %s" %(afile,e))
         except IOError:
             return sys.exit("Config file %s not fount" %(afile))
+
     
                     
 cfg = config()
@@ -33,41 +37,104 @@ DATASTORE = cfg["db_path"]
 class CustomStreamListener(tweepy.StreamListener):
     
     def write_data(self,data):
-        with open(DATASTORE, "a") as f:
-            spamwriter = csv.writer(f, delimiter='\t',
-                            quotechar='|', quoting=csv.QUOTE_MINIMAL)
-            spamwriter.writerow(data)
-    
+        with codecs.open(DATASTORE, 'a', encoding='utf-8') as f:
+        #with open(DATASTORE, "a") as f:
+            #f.write("\t".join([repr(n) for n in data])+"\n")
+            w = csv.writer(f, delimiter='\t')
+            w.writerow(data)
+            
+    def extract(self, status):
+        #extract author_info
+        user = {
+                "user_id":status.author.id,
+                "user_location": status.author.location, 
+                "user_name": status.author.name,
+                "user_screen_name": status.author.screen_name,
+                "user_url": status.author.url,
+                'time_zone': status.author.time_zone,
+                "user_description": status.author.description,
+                "utc": status.author.utc_offset,
+                "followers_count":status.author.followers_count,
+                "friends_count":status.author.friends_count, 
+                }
+        for k, v in user.items():
+            if v is None:
+                user[k] = ("None").encode("utf-8")
+            elif isinstance(v, unicode):
+                    
+                user[k] = v.encode("utf-8", "ignore")
+                
+            else:
+                pass
+        
+        tweet = {
+                'text':status.text.encode("utf-8"), 
+                'reply_to_tweet_id': status.in_reply_to_status_id,
+                'reply_to_screen_name': status.in_reply_to_screen_name,
+                'reply_to_user_id': status.in_reply_to_user_id,
+                'retweet_nb': status.retweet_count,
+                'id': status.id,
+                'from_source': status.source, 
+                #'coordinates':status.coordinate, 
+                #'retweeted_status': status.retweeted_status,
+                'source_url': status.source_url,
+                #'geo': status.geo,
+                'lang':status.lang,
+                #'tweet_created_at': status.create_at,
+                'place': status.place,
+                #'retweeted_status':status.retweeted_status,
+                }
+        
+        for k, v in tweet.items():
+            if v is None:
+                user[k] = "None"
+            elif isinstance(v, unicode):
+                user[k] = v.encode('utf-8', "ignore")
+                
+               
+            elif isinstance(v, (list,dict,tuple)):
+                del user[k]
+            else:
+               pass
+        user.update(tweet)
+        return OrderedDict(sorted(user.items()))
+        
+        
     def on_status(self, status):        
         # We'll simply append some values in row (list)
         # suitable for writing into a csv file
         # and store it into database_name csv file
         
         try:
-            row = [re.sub("\t|\n|\r", "", (status.text).encode('utf-8')), re.sub("\t|\n|\r", "", (status.author.screen_name).encode('utf-8')), status.created_at, re.sub("\t|\n|\r", "", status.source.encode('utf-8'))]
-            #row = [re.sub("\t|\n|\r", "", str(n)) for n in row]
-            #print(row)
-            #yield row
-            self.write_data(row)
-            
-            #print self.results
-            #~ print len(raw)
-            #~ print "\n"
-        except Exception as e:
-            
-            print('Encountered Exception: %s' %e)
+            d = self.extract(status)
+            self.write_data(d.values())
+        except Exception, e:
+            self.write_data([repr(d) for d in d.values()])
+            print "Warning extraction", e
             pass
+            
 
     def on_error(self, status_code):
-        print('Encountered Exception: %s' %status_code)
+        if status_code == 420:
+            print ("Enhance Your Calm. You rate has been limited")
+        elif status_code == 503:
+            print ('Service Unavailable The Twitter servers are up, but overloaded with requests. Try again later.')
+        else:
+            print('Encountered Exception: %s' %status_code)
         return True # Don't kill the stream
 
     def on_timeout(self):
         print('Timeout...')
-        return True # Don't kill the stream
+        return False # Don't kill the stream
                 
 def run(params):
-    
+    #~ header = ["author."+n for n in ['created_at', 'description', 'favourites_count', 'follow_request_sent', 'followers_count', 'following', 'friends_count', 'id', 'id_str', 'lang', 'listed_count', 'location', 'name', 'screen_name', 'statuses_count', 'time_zone', 'url', 'utc_offset', 'verified']]
+    #~ print header
+    keys = ['followers_count', 'friends_count', 'from_source', 'id', 'lang', 'place', 'reply_to_screen_name', 'reply_to_tweet_id', 'reply_to_user_id', 'retweet_nb', 'source_url', 'text', 'time_zone', 'user_description', 'user_id', 'user_location', 'user_name', 'user_screen_name', 'user_url', 'utc']
+    with codecs.open(DATASTORE, 'w', encoding='utf-8') as f:
+        spamwriter = csv.writer(f, delimiter='\t')
+        spamwriter.writerow(keys)
+
     #run stream
     query = params["hashtag"]
     

@@ -1,3 +1,4 @@
+ # -*- coding: utf-8 -*- 
 import threading
 import time
 from datetime import datetime
@@ -10,7 +11,7 @@ class ThreadingExample(object):
     until the application exits.
     """
 
-    def __init__(self, interval=1, timeout=10):
+    def __init__(self, interval=5, timeout=10):
         """ Constructor
         :type interval: int
         :param interval: Check interval, in seconds
@@ -38,5 +39,5 @@ class ThreadingExample(object):
             
             
 
-t = ThreadingExample(interval=0, cfg["timeout"])
+t = ThreadingExample(interval=0, timeout= cfg["timeout"])
 t.run()
